@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashain Wishes – Make your own greeting</title>
+  <meta name="description" content="Create a personalised Dashain greeting image with your name and message.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="hero">
+    <h1>🙏 Happy Dashain! शुभ विजया दशमी</h1>
+    <p>Make your own Dashain greeting with your photo, name and designation</p>
+  </header>
+
+  <main>
+    <p id="status">Loading…</p>
+
+    <div id="app" class="grid" hidden>
+      <div class="card">
+        <h2>1. Choose a design</h2>
+        <div class="thumbs" id="thumbs"></div>
+
+        <h2 style="margin-top:18px">2. Your details</h2>
+        <label for="name">Your name</label>
+        <input type="text" id="name" maxlength="40" placeholder="e.g. Ram Bahadur / राम बहादुर">
+        <label for="post">Your designation</label>
+        <input type="text" id="post" maxlength="60" placeholder="e.g. Chairman / अध्यक्ष">
+
+        <div id="photoBox" hidden>
+          <label for="photo">Your photo</label>
+          <input type="file" id="photo" accept="image/*">
+        </div>
+
+        <div class="row" style="margin-top:16px">
+          <button id="dlBtn">⬇ Download image</button>
+          <button id="shareBtn" class="secondary">Share</button>
+        </div>
+        <p class="muted">Your photo and text stay on your device – nothing is uploaded.</p>
+      </div>
+
+      <div class="card preview">
+        <h2>Preview</h2>
+        <canvas id="c"></canvas>
+      </div>
+    </div>
+  </main>
+  <footer>Made with ❤️ for Dashain</footer>
+
+  <script src="wish.js"></script>
+  <script>
+    var $ = function (id) { return document.getElementById(id); };
+    var templates = [], sel = null, photo = null, timer;
+
+    async function init() {
+      try {
+        var r = await fetch("templates.json?v=" + Date.now());
+        templates = await r.json();
+      } catch (e) {
+        $("status").textContent = "Could not load templates.json. Open this page through a web server (not by double-clicking the file).";
+        return;
+      }
+      if (!templates.length) { $("status").textContent = "No templates yet."; return; }
+      $("status").hidden = true;
+      $("app").hidden = false;
+      templates.forEach(function (t) {
+        var img = document.createElement("img");
+        img.src = t.image; img.alt = t.title; img.title = t.title;
+        img.onclick = function () { select(t); };
+        t._el = img;
+        $("thumbs").appendChild(img);
+      });
+      select(templates[0]);
+    }
+
+    function select(t) {
+      sel = t;
+      templates.forEach(function (x) { x._el.className = x === t ? "active" : ""; });
+      $("photoBox").hidden = !t.photo_enabled;
+      redraw();
+    }
+
+    function redraw() {
+      clearTimeout(timer);
+      timer = setTimeout(function () {
+        drawWish($("c"), sel, { name: $("name").value, post: $("post").value, photo: photo })
+          .catch(function () { $("status").hidden = false; $("status").textContent = "Could not draw the image."; });
+      }, 100);
+    }
+
+    $("name").oninput = redraw;
+    $("post").oninput = redraw;
+    $("photo").onchange = async function (e) {
+      var f = e.target.files[0];
+      photo = f ? await loadPhotoFile(f) : null;
+      redraw();
+    };
+
+    function fileName() {
+      return "dashain-wish-" + ($("name").value.trim().replace(/\s+/g, "-") || "greeting") + ".png";
+    }
+    $("dlBtn").onclick = function () {
+      $("c").toBlob(function (blob) {
+        var a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = fileName();
+        a.click();
+      }, "image/png");
+    };
+    $("shareBtn").onclick = function () {
+      $("c").toBlob(async function (blob) {
+        var file = new File([blob], fileName(), { type: "image/png" });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          try { await navigator.share({ files: [file], title: "Happy Dashain!" }); } catch (e) {}
+        } else {
+          $("dlBtn").click();
+        }
+      }, "image/png");
+    };
+
+    init();
+  </script>
+</body>
+</html>

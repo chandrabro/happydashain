@@ -1,0 +1,38 @@
+[
+  {
+    "id": "gemini-generated-image-xpfzkgxpfzkgxpfz",
+    "title": "Gemini_Generated_Image_xpfzkgxpfzkgxpfz",
+    "image": "templates/gemini-generated-image-xpfzkgxpfzkgxpfz.png",
+    "name_x": 0.5475,
+    "name_y": 0.7615,
+    "name_size": 0.06,
+    "name_color": "#ffffff",
+    "post_x": 0.5,
+    "post_y": 0.82,
+    "post_size": 0.035,
+    "post_color": "#ffd700",
+    "photo_enabled": true,
+    "photo_x": 0.5,
+    "photo_y": 0.4,
+    "photo_size": 0.3,
+    "max_width": 0.8
+  },
+  {
+    "id": "sample",
+    "title": "Sample design",
+    "image": "templates/sample.jpg",
+    "name_x": 0.5,
+    "name_y": 0.76,
+    "name_size": 0.065,
+    "name_color": "#ffffff",
+    "post_x": 0.5,
+    "post_y": 0.84,
+    "post_size": 0.04,
+    "post_color": "#ffd700",
+    "photo_enabled": true,
+    "photo_x": 0.5,
+    "photo_y": 0.4148,
+    "photo_size": 0.42,
+    "max_width": 0.8
+  }
+]

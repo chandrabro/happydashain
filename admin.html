@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Admin – Dashain templates</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="hero">
+    <h1>Template builder</h1>
+    <p><a href="index.html">← Back to site</a></p>
+  </header>
+
+  <main>
+    <p id="msg"></p>
+
+    <div id="listView">
+      <div class="card">
+        <h2>1. Add a new design</h2>
+        <p class="muted">Choose your design image (JPG or PNG, ideally under 1 MB). Leave an empty frame for the photo, and space below it for the name and designation.</p>
+        <input type="file" id="newFile" accept="image/*">
+      </div>
+
+      <div class="card">
+        <h2>Templates on your site (<span id="count">0</span>)</h2>
+        <div id="list"></div>
+        <div class="steps" id="publishBox" hidden>
+          <b>2. Publish your changes</b><br>
+          Download <code>templates.json</code> (and the image of each new design, marked NEW), then upload them to GitHub:
+          images into the <code>templates</code> folder, <code>templates.json</code> in the main folder (replace the old one).
+          <div class="row" style="margin-top:10px"><button id="dlJson">⬇ Download templates.json</button></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="editView" class="grid" hidden>
+      <div class="card">
+        <h2 id="editTitle">New template</h2>
+        <label>Title</label>
+        <input type="text" data-k="title">
+
+        <p class="muted" style="margin-top:14px">Pick an element, then <b>click on the image</b> to move it.</p>
+        <div class="tabs" id="tabs">
+          <button data-tab="name">Name</button>
+          <button data-tab="post">Designation</button>
+          <button data-tab="photo" hidden>Photo</button>
+        </div>
+
+        <div data-panel="name">
+          <label>Name size</label><input type="range" data-k="name_size" min="0.02" max="0.15" step="0.005">
+          <label>Name colour</label><input type="color" data-k="name_color">
+        </div>
+        <div data-panel="post" hidden>
+          <label>Designation size</label><input type="range" data-k="post_size" min="0.015" max="0.08" step="0.0025">
+          <label>Designation colour</label><input type="color" data-k="post_color">
+        </div>
+        <div data-panel="photo" hidden>
+          <label>Photo size</label><input type="range" data-k="photo_size" min="0.1" max="0.8" step="0.01">
+        </div>
+
+        <label>Max text width</label>
+        <input type="range" data-k="max_width" min="0.3" max="1" step="0.01">
+
+        <label style="display:flex;gap:8px;align-items:center">
+          <input type="checkbox" data-k="photo_enabled"> Let users add their photo
+        </label>
+
+        <div class="row" style="margin-top:18px">
+          <button id="saveBtn">Save to list</button>
+          <button id="cancelBtn" class="secondary">Cancel</button>
+        </div>
+      </div>
+
+      <div class="card preview">
+        <h2 id="clickHint">Click to place the name</h2>
+        <canvas id="c" class="pick"></canvas>
+      </div>
+    </div>
+  </main>
+
+  <script src="wish.js"></script>
+  <script>
+    var $ = function (id) { return document.getElementById(id); };
+    var DEFAULTS = {
+      name_x: 0.5, name_y: 0.7, name_size: 0.06, name_color: "#ffffff",
+      post_x: 0.5, post_y: 0.78, post_size: 0.035, post_color: "#ffd700",
+      photo_enabled: true, photo_x: 0.5, photo_y: 0.4, photo_size: 0.3,
+      max_width: 0.8
+    };
+    var list = [];          // templates (same shape as templates.json)
+    var files = {};         // id -> File for newly added designs
+    var cur = null;         // template being edited
+    var isNew = false;
+    var active = "name";
+
+    function msg(text, cls) { $("msg").className = cls || ""; $("msg").textContent = text || ""; }
+
+    async function loadList() {
+      try {
+        var r = await fetch("templates.json?v=" + Date.now());
+        list = await r.json();
+      } catch (e) {
+        list = [];
+        msg("Could not read templates.json – open this page through a web server. Starting with an empty list.", "error");
+      }
+      renderList();
+    }
+
+    function clean(t) {
+      var o = {};
+      Object.keys(t).forEach(function (k) { if (k !== "src") o[k] = t[k]; });
+      return o;
+    }
+
+    function dl(blob, name) {
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = name;
+      a.click();
+    }
+
+    function renderList() {
+      $("count").textContent = list.length;
+      var box = $("list");
+      box.innerHTML = "";
+      list.forEach(function (t) {
+        var row = document.createElement("div");
+        row.className = "row";
+        row.style.marginBottom = "10px";
+        var img = document.createElement("img");
+        img.src = files[t.id] ? URL.createObjectURL(files[t.id]) : t.image;
+        img.height = 64; img.style.borderRadius = "6px";
+        var title = document.createElement("strong");
+        title.style.flex = "1";
+        title.textContent = t.title + (files[t.id] ? "  (NEW)" : "");
+        row.append(img, title);
+
+        if (files[t.id]) {
+          var b = document.createElement("button");
+          b.className = "secondary"; b.textContent = "⬇ Image";
+          b.onclick = function () { dl(files[t.id], t.image.replace("templates/", "")); };
+          row.append(b);
+        }
+        var ed = document.createElement("button");
+        ed.className = "secondary"; ed.textContent = "Edit";
+        ed.onclick = function () { startEdit(t, false); };
+        var rm = document.createElement("button");
+        rm.className = "danger"; rm.textContent = "Remove";
+        rm.onclick = function () {
+          if (!confirm("Remove this template from the list?")) return;
+          list = list.filter(function (x) { return x.id !== t.id; });
+          delete files[t.id];
+          changed(); renderList();
+        };
+        row.append(ed, rm);
+        box.appendChild(row);
+      });
+    }
+
+    function changed() { $("publishBox").hidden = false; }
+
+    $("dlJson").onclick = function () {
+      dl(new Blob([JSON.stringify(list.map(clean), null, 2)], { type: "application/json" }), "templates.json");
+    };
+
+    $("newFile").onchange = function (e) {
+      var f = e.target.files[0];
+      if (!f) return;
+      var base = f.name.replace(/\.[^.]+$/, "");
+      var ext = (f.name.match(/\.([^.]+)$/) || [, "jpg"])[1].toLowerCase();
+      var slug = base.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "design";
+      var id = slug, n = 2;
+      while (list.some(function (x) { return x.id === id; })) id = slug + "-" + n++;
+      var t = Object.assign({ id: id, title: base, image: "templates/" + id + "." + ext }, DEFAULTS);
+      t.src = URL.createObjectURL(f);
+      t._file = f;
+      startEdit(t, true);
+      e.target.value = "";
+    };
+
+    function startEdit(t, newOne) {
+      cur = Object.assign({}, t);
+      if (!newOne) cur.src = t.image;
+      isNew = newOne;
+      active = "name";
+      msg("");
+      $("listView").hidden = true;
+      $("editView").hidden = false;
+      $("editTitle").textContent = newOne ? "New template" : "Edit template";
+      fillForm();
+      showTab();
+      redraw();
+    }
+
+    function fillForm() {
+      document.querySelectorAll("[data-k]").forEach(function (el) {
+        var v = cur[el.dataset.k];
+        if (el.type === "checkbox") el.checked = !!v; else el.value = v;
+      });
+      document.querySelector('[data-tab="photo"]').hidden = !cur.photo_enabled;    }
+
+    document.querySelectorAll("[data-k]").forEach(function (el) {
+      el.oninput = function () {
+        var k = el.dataset.k;
+        cur[k] = el.type === "checkbox" ? el.checked : el.type === "range" ? +el.value : el.value;
+        if (k === "photo_enabled") {
+          document.querySelector('[data-tab="photo"]').hidden = !el.checked;
+          if (!el.checked && active === "photo") active = "name";
+          showTab();
+        }
+        redraw();
+      };
+    });
+
+    document.querySelectorAll("[data-tab]").forEach(function (b) {
+      b.onclick = function () { active = b.dataset.tab; showTab(); };
+    });
+
+    function showTab() {
+      document.querySelectorAll("[data-tab]").forEach(function (b) {
+        b.className = b.dataset.tab === active ? "" : "off";
+      });
+      document.querySelectorAll("[data-panel]").forEach(function (p) {
+        p.hidden = p.dataset.panel !== active;
+      });
+      $("clickHint").textContent = "Click to place the " + (active === "post" ? "designation" : active);
+    }
+
+    function redraw() {
+      drawWish($("c"), cur, { name: "Your Name", post: "Your Designation", placeholder: true })
+        .catch(function () { msg("Could not load that image.", "error"); });
+    }
+
+    $("c").onclick = function (e) {
+      var r = this.getBoundingClientRect();
+      cur[active + "_x"] = +((e.clientX - r.left) / r.width).toFixed(4);
+      cur[active + "_y"] = +((e.clientY - r.top) / r.height).toFixed(4);
+      redraw();
+    };
+
+    $("saveBtn").onclick = function () {
+      if (!cur.title.trim()) { msg("Give the template a title", "error"); return; }
+      var out = clean(cur);
+      delete out._file;
+      if (isNew) {
+        list.unshift(out);
+        files[out.id] = cur._file;
+      } else {
+        list = list.map(function (x) { return x.id === out.id ? out : x; });
+      }
+      changed();
+      $("editView").hidden = true;
+      $("listView").hidden = false;
+      renderList();
+      msg(isNew ? "Added ✔ – now download the files below and upload them to GitHub." : "Updated ✔ – download templates.json and upload it to GitHub.", "ok");
+    };
+
+    $("cancelBtn").onclick = function () {
+      $("editView").hidden = true;
+      $("listView").hidden = false;
+      msg("");
+    };
+
+    loadList();
+  </script>
+</body>
+</html>
