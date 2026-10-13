@@ -1,5 +1,23 @@
 [
   {
+    "id": "templatefinal",
+    "title": "templatefinal",
+    "image": "templates/templatefinal.png",
+    "name_x": 0.5207,
+    "name_y": 0.7257,
+    "name_size": 0.045,
+    "name_color": "#eb4a05",
+    "post_x": 0.5332,
+    "post_y": 0.7674,
+    "post_size": 0.035,
+    "post_color": "#100f0f",
+    "photo_enabled": true,
+    "photo_x": 0.5064,
+    "photo_y": 0.6436,
+    "photo_size": 0.19,
+    "max_width": 0.41
+  },
+  {
     "id": "dashainimage",
     "title": "Dashainimage",
     "image": "templates/merodashain.png",
