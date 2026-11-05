@@ -58,6 +58,16 @@
         </div>
         <div data-panel="photo" hidden>
           <label>Photo size</label><input type="range" data-k="photo_size" min="0.1" max="0.8" step="0.01">
+          <label>Photo shape</label>
+          <select data-k="photo_shape" style="width:100%;padding:10px 12px;border:1.5px solid #ddd;border-radius:10px;font:inherit">
+            <option value="circle">Circle</option>
+            <option value="square">Square</option>
+            <option value="rounded">Rounded square</option>
+            <option value="hexagon">Hexagon</option>
+            <option value="diamond">Diamond</option>
+            <option value="heart">Heart</option>
+            <option value="star">Star</option>
+          </select>
         </div>
 
         <label>Max text width</label>
@@ -86,7 +96,7 @@
     var DEFAULTS = {
       name_x: 0.5, name_y: 0.7, name_size: 0.06, name_color: "#ffffff",
       post_x: 0.5, post_y: 0.78, post_size: 0.035, post_color: "#ffd700",
-      photo_enabled: true, photo_x: 0.5, photo_y: 0.4, photo_size: 0.3,
+      photo_enabled: true, photo_x: 0.5, photo_y: 0.4, photo_size: 0.3, photo_shape: "circle",
       max_width: 0.8
     };
     var list = [];          // templates (same shape as templates.json)
@@ -182,6 +192,7 @@
 
     function startEdit(t, newOne) {
       cur = Object.assign({}, t);
+      if (!cur.photo_shape) cur.photo_shape = "circle";
       if (!newOne) cur.src = t.image;
       isNew = newOne;
       active = "name";
