@@ -1,5 +1,23 @@
 [
   {
+    "id": "imgonline-com-ua-twotoone-28xors63gormz",
+    "title": "imgonline-com-ua-twotoone-28Xors63GoRMZ",
+    "image": "templates/imgonline-com-ua-twotoone-28xors63gormz.jpg",
+    "name_x": 0.4921,
+    "name_y": 0.8091,
+    "name_size": 0.05,
+    "name_color": "#ed6c02",
+    "post_x": 0.485,
+    "post_y": 0.845,
+    "post_size": 0.035,
+    "post_color": "#111211",
+    "photo_enabled": true,
+    "photo_x": 0.4832,
+    "photo_y": 0.6938,
+    "photo_size": 0.25,
+    "max_width": 0.78
+  },
+  {
     "id": "templatefinal",
     "title": "templatefinal",
     "image": "templates/templatefinal.png",
