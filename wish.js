@@ -73,6 +73,42 @@ function drawText(ctx, text, x, y, sizePx, color, maxWidth, wrap) {
   ctx.shadowColor = "transparent";
 }
 
+// Builds the outline of the photo frame. shape: circle | square | rounded | hexagon | diamond | heart | star
+// d = width/height of the frame box, (cx, cy) = its centre. Old templates without a shape use "circle".
+function shapePath(ctx, shape, cx, cy, d) {
+  var r = d / 2, i, a, x, y;
+  ctx.beginPath();
+  if (shape === "square") {
+    ctx.rect(cx - r, cy - r, d, d);
+  } else if (shape === "rounded") {
+    var k = d * 0.18, l = cx - r, t = cy - r, rr = cx + r, b = cy + r;
+    ctx.moveTo(l + k, t);
+    ctx.arcTo(rr, t, rr, b, k);
+    ctx.arcTo(rr, b, l, b, k);
+    ctx.arcTo(l, b, l, t, k);
+    ctx.arcTo(l, t, rr, t, k);
+  } else if (shape === "hexagon" || shape === "diamond" || shape === "star") {
+    var n = shape === "hexagon" ? 6 : shape === "diamond" ? 4 : 10;
+    for (i = 0; i < n; i++) {
+      var rad = r;
+      if (shape === "star") rad = i % 2 === 0 ? r : r * 0.45;
+      a = -Math.PI / 2 + (i * 2 * Math.PI) / n;
+      if (shape === "hexagon") a += Math.PI / 6;
+      x = cx + rad * Math.cos(a);
+      y = cy + rad * Math.sin(a);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+  } else if (shape === "heart") {
+    var top = cy - r * 0.55;
+    ctx.moveTo(cx, cy + r);
+    ctx.bezierCurveTo(cx - r * 1.35, cy + r * 0.1, cx - r * 0.95, top - r * 0.45, cx, top + r * 0.2);
+    ctx.bezierCurveTo(cx + r * 0.95, top - r * 0.45, cx + r * 1.35, cy + r * 0.1, cx, cy + r);
+  } else {
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  }
+  ctx.closePath();
+}
+
 // t.src (if set) overrides t.image, used by the admin preview for local files.
 async function drawWish(canvas, t, opts) {
   opts = opts || {};
@@ -98,21 +134,18 @@ async function drawWish(canvas, t, opts) {
     if (opts.photo) {
       var p = opts.photo;
       ctx.save();
-      ctx.beginPath();
-      ctx.arc(cx, cy, d / 2, 0, Math.PI * 2);
-      ctx.closePath();
+      shapePath(ctx, t.photo_shape, cx, cy, d);
       ctx.clip();
       var s = Math.max(d / p.width, d / p.height);
       ctx.drawImage(p, cx - (p.width * s) / 2, cy - (p.height * s) / 2, p.width * s, p.height * s);
       ctx.restore();
-      ctx.beginPath();
-      ctx.arc(cx, cy, d / 2, 0, Math.PI * 2);
+      shapePath(ctx, t.photo_shape, cx, cy, d);
       ctx.lineWidth = d * 0.025;
+      ctx.lineJoin = "round";
       ctx.strokeStyle = "#ffd700";
       ctx.stroke();
     } else if (opts.placeholder) {
-      ctx.beginPath();
-      ctx.arc(cx, cy, d / 2, 0, Math.PI * 2);
+      shapePath(ctx, t.photo_shape, cx, cy, d);
       ctx.fillStyle = "rgba(255,255,255,0.35)";
       ctx.fill();
       ctx.lineWidth = d * 0.02;
