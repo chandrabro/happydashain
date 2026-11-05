@@ -60,6 +60,14 @@
         $("status").textContent = "Could not load templates.json. Open this page through a web server (not by double-clicking the file).";
         return;
       }
+      // Skip any design whose image file can't be found, so one wrong filename doesn't break the page.
+      var ok = await Promise.all(templates.map(function (t) {
+        return loadImage(t.image).then(function () { return true; }, function () {
+          console.warn("Image not found, skipping:", t.image);
+          return false;
+        });
+      }));
+      templates = templates.filter(function (t, i) { return ok[i]; });
       if (!templates.length) { $("status").textContent = "No templates yet."; return; }
       $("status").hidden = true;
       $("app").hidden = false;
@@ -97,7 +105,9 @@
     };
 
     function fileName() {
-      return "dashain-wish-" + ($("name").value.trim().replace(/\s+/g, "-") || "greeting") + ".png";
+      // Change "suvakamana" below to any prefix you like.
+      var who = $("name").value.trim().replace(/[\\\/:*?"<>|]/g, "").replace(/\s+/g, "_");
+      return "suvakamana_" + (who || "greeting") + ".png";
     }
     $("dlBtn").onclick = function () {
       $("c").toBlob(function (blob) {
